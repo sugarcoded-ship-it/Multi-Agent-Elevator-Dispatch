@@ -1,9 +1,7 @@
 # My agent plan
 
-Fill in the brackets before delegation. This is a template, not a completed plan.
-
-- Dispatcher builder owns dispatcher.py: [brief task using my POLICY.md]
-- Display builder owns app.py: [brief task using SPEC.md and the shared interfaces]
-- Reviewer is read-only after both outputs are integrated: [what I want examined]
-- Handoff steps: [how I will provide context, combine files and start review]
-- Final check: [how I will compare actual choices with my three predictions]
+- Dispatcher builder owns dispatcher.py: implement `choose_elevator` using my POLICY.md. Call `rules.eligible_ids` first. If no car is eligible, return `Decision(None, reason)` (WAIT). If one is eligible, select it. If both are eligible and exactly one is idle, select the idle car, even if it is farther away, more loaded or already stopping at the caller's floor. Otherwise, use my tie-breaker: lower `load_kg`, then A. Every decision needs a short reason naming the rule that decided it. Do not mutate the inputs, and do not add distance or any other objective.
+- Display builder owns app.py: implement `run_scenarios(scenarios, output_fn=print)`. For each scenario, print its name, both elevator states (floor, direction, load, stops) and the request. Call `choose_elevator(elevators, request)` exactly once per scenario. Print `Selected: A`/`Selected: B`, or `Selected: WAIT` when `elevator_id` is None, followed by the decision's reason. Return the list of decisions, and return `[]` for an empty list. Do not put any selection logic in app.py; only use the `Decision` interface from models.py.
+- Reviewer is read-only after both outputs are integrated: check that dispatcher.py follows my rule order and tie-breaker exactly, uses `eligible_ids` and never selects an ineligible car. Check that app.py only displays the dispatcher's `Decision` and does not re-decide. Check S1–S6 against my predictions. Name one tradeoff in my policy with a concrete case, such as S3, where A is already stopping at floor 5 but my rule still sends B. Label each concern as a code defect, policy inconsistency or policy tradeoff.
+- Handoff steps: I will run both builders as separate workers in this folder with `python3`. Each gets SPEC.md, POLICY.md, PLAN.md, AGENTS.md and all six Python files, plus permission to edit only its owned file. Once both have finished, I will check the diff to confirm that only dispatcher.py and app.py changed, then run `python3 -m unittest -v` and `python3 app.py`. After that, I will start a fresh reviewer with the current files only, without the builders' summaries.
+- Final check: I will compare the actual `python3 app.py` output for S1, S3 and S6 with my POLICY.md predictions (B, B, B), checking both the selected car and that the reason cites the idle-car rule. I will record the results in EVIDENCE.md. If a result differs, I will decide whether it is a code defect to send back to the dispatcher builder or a reason to revise my policy.
